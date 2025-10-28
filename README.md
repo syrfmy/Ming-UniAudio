@@ -22,7 +22,7 @@ Ming-UniAudio is a novel framework that unifies speech understanding, generation
 <p>
 
 ## 📌 Updates
-* [2025.10.28] 🔥 We release [Technical Report](assets/TR-Ming-UniAudio.pdf).
+* [2025.10.28] 🔥 We release [Technical Report](https://mdn.alipayobjects.com/cto_asrtts/uri/file/as/TR-Ming-UniAudio.pdf).
 * [2025.10.27] 🔥 We release [SFT recipes](sft/README.md) of Speech Generation.
 * [2025.09.30] 🔥 We release [Ming-UniAudio](https://xqacmer.github.io/Ming-Unitok-Audio.github.io/) with significant improvements across speech understanding, generation, and free-form editing tasks.
 
