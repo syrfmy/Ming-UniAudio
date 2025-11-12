@@ -19,7 +19,8 @@ class SampleBuilder:
     def build_sample(self, sample):
         if sample['task_type'] == 'tts':
             sample = self.build_tts_sample(sample)
-        
+        elif sample['task_type'] == 'asr':
+            sample = self.build_asr_sample(sample)
         return sample
     
     def build_tts_sample(self, sample):
@@ -58,6 +59,46 @@ class SampleBuilder:
             'placeholder_loc_lens': placeholder_loc_lens,
             'stats_duration': torch.tensor([len(waveform)/self.sr/3600], dtype=torch.float32)
         }
+
+    def build_asr_sample(self, sample):
+        if 'waveform' in sample and 'sample_rate' in sample:
+            waveform, sample_rate = sample['waveform'], sample['sample_rate']
+        else:
+            waveform, sample_rate = torchaudio.load(sample['wav_path'], backend='soundfile')
+        if waveform.ndim == 2:
+            waveform = waveform[0]
+
+        if sample_rate != self.sr:
+            waveform = torchaudio.transforms.Resample(orig_freq=sample_rate, new_freq=self.sr)(waveform)
+
+        length = math.ceil(len(waveform) / self.hop_size) // self.patch_size
+
+        prompt_tokens = self.tokenizer.encode("<role>HUMAN</role>Please recognize the language of this speech and transcribe it. Format: oral.")
+        input_part = (
+            prompt_tokens +
+            self.tokenizer.encode(f"<audio>") +
+            self.tokenizer.encode(f"<audioPatch>")*length +
+            self.tokenizer.encode(f"</audio>") +
+            self.tokenizer.encode(f"<role>ASSISTANT</role>")
+        )
+
+        output_part = self.tokenizer.encode(f"{sample['lang']}\t{sample['text']}<|endoftext|>")
+        placeholder_loc_lens = torch.tensor([(len(prompt_tokens)+1, length)], dtype=torch.long)
+
+        input_ids = torch.tensor(input_part+output_part, dtype=torch.int)
+        attention_mask = torch.ones_like(input_ids)
+        labels = torch.tensor([-100]*len(input_part) + output_part, dtype=torch.long)
+
+        return {
+            'input_ids': input_ids,
+            'attention_mask': attention_mask,
+            'waveform': waveform,
+            'waveform_length':  torch.tensor([len(waveform)], dtype=torch.long),
+            'labels': labels,
+            'placeholder_loc_lens': placeholder_loc_lens,
+            'stats_duration': torch.tensor([len(waveform)/self.sr/3600], dtype=torch.float32)
+        }
+
 
     def __call__(self, data):
         for sample in data:

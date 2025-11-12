@@ -24,17 +24,17 @@ train:
     num_training_steps: 400000
   save_config:
     save_model_steps: 2000
-    save_dir: exp/sft/tts
+    save_dir: exp/sft/asr
   loss_weight:
-    flow_loss: 1
-    stop_loss: 0.01
-    asr_loss: 0
+    flow_loss: 0
+    stop_loss: 0
+    asr_loss: 1
 
 dataset:
-  data_jsonl_file: sft/data/tts.jsonl
+  data_jsonl_file: sft/data/asr.jsonl
   tokenizer: "."
   sr: 16000
   patch_size: 5
   hop_size: 320
-  max_frames_in_batch: 3000
+  max_frames_in_batch: 100
   buffer_size: 1000

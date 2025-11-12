@@ -7,6 +7,9 @@
 - [Speech Generation](#speech-generation)
   - [Data Preparation](#data-preparation)
   - [Training](#training)
+- [Speech Understanding](#speech-understanding)
+  - [Data Preparation](#data-preparation-1)
+  - [Training](#training-1)
 - [Acknowledgements](#acknowledgements)
 
 ## Overview
@@ -91,6 +94,35 @@ bash sft/train.sh sft/conf/train_tts_lora.yaml
 ```
 
 You can customize training parameters, data paths, and model configurations by editing the corresponding `.yaml` files in the `sft/conf/` directory.
+
+## Speech Understanding
+### Data Preparation
+The training data must be in a **JSON Lines** (`.jsonl`) format. Each line in the file should be a JSON object containing the following keys:
+
+*   `task_type`: The task identifier. For speech generation, this should be `"asr"`.
+*   `wav_path`: The absolute or relative path to the audio file.
+*   `text`: The corresponding text transcript for the audio.
+*   `lang`: The language/dialect type, supports `['Chinese', 'English', '川渝', '湖南', '闽南', '上海', 'Canton']`
+
+**Example:**
+
+Please refer to `sft/data/asr.jsonl` for a sample. A single line should look like this:
+```json
+{"task_type": "asr", "wav_path": "/input/lyuyongjie.lyj/data/testsets/aishell1/wav/test/S0915/BAC009S0915W0292.wav", "text": "现在是不是也该长点心了吧", "lang": "Chinese"}
+```
+### Training
+The training process is similar to the speech generation process described above.
+- Full-Parameter Fine-Tuning(Recommended)
+
+```bash
+bash sft/train.sh sft/conf/train_asr.yaml
+```
+
+- LoRA Fine-Tuning
+
+```bash
+bash sft/train.sh sft/conf/train_asr_lora.yaml
+```
 
 ## Acknowledgements
 Our SFT training framework builds upon several excellent open-source projects. We are grateful for their contributions:

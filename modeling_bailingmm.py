@@ -73,6 +73,7 @@ class BailingMMCausalLMOutputWithPast(ModelOutput):
     flow_loss: Optional[torch.FloatTensor] = None
     stop_loss: Optional[torch.FloatTensor] = None
     stop_loss_likely: Optional[dict] = None
+    asr_loss: Optional[torch.FloatTensor] = None
     logits: torch.FloatTensor = None
     past_key_values: Optional[List[torch.FloatTensor]] = None
     hidden_states: Optional[Tuple[torch.FloatTensor]] = None
@@ -362,6 +363,8 @@ class BailingMMNativeForConditionalGeneration(PreTrainedModel):
         **kwargs
     ) -> Union[Tuple, BailingMMCausalLMOutputWithPast]:
 
+        task_type = kwargs.pop('task_type', 'tts')
+
         if (input_ids is None) ^ (inputs_embeds is not None):
             raise ValueError(
                 "You cannot specify both input_ids and inputs_embeds at the same time, and must specify either one"
@@ -414,37 +417,51 @@ class BailingMMNativeForConditionalGeneration(PreTrainedModel):
             return_dict=True
         )
         llm_last_outputs = outputs.hidden_states[-1]
-        # Flow matching condition
-        condition = torch.zeros_like(audio_embeds)
-        for i in range(condition.size(0)):
-            condition[i, :audio_embeds_lengths[i]] = llm_last_outputs[i, placeholder_loc_lens[i][0][0]-1:placeholder_loc_lens[i][0][0]-1+placeholder_loc_lens[i][0][1]]
-        condition = condition.reshape(-1, 1, condition.size(-1))
-        condition_mask = length2attention_mask(audio_embeds_lengths)
-        condition_mask = condition_mask.reshape(-1, 1).expand(-1, self.patch_size)  # [B*patch_num, patch_size]
+        
+        if task_type == 'tts':
+            # Flow matching condition
+            condition = torch.zeros_like(audio_embeds)
+            for i in range(condition.size(0)):
+                condition[i, :audio_embeds_lengths[i]] = llm_last_outputs[i, placeholder_loc_lens[i][0][0]-1:placeholder_loc_lens[i][0][0]-1+placeholder_loc_lens[i][0][1]]
+            condition = condition.reshape(-1, 1, condition.size(-1))
+            condition_mask = length2attention_mask(audio_embeds_lengths)
+            condition_mask = condition_mask.reshape(-1, 1).expand(-1, self.patch_size)  # [B*patch_num, patch_size]
 
-        # Flow matching latent history and target
-        latent_history = latents.clone()[:, :-self.patch_size, :]
-        latent_history = F.pad(latent_history, pad=(0, 0, self.patch_size, 0))
-        latent_history = latent_history.reshape(-1, self.patch_size, latent_history.size(-1))
-        target = latents.clone().reshape(-1, self.patch_size, latents.size(-1))
+            # Flow matching latent history and target
+            latent_history = latents.clone()[:, :-self.patch_size, :]
+            latent_history = F.pad(latent_history, pad=(0, 0, self.patch_size, 0))
+            latent_history = latent_history.reshape(-1, self.patch_size, latent_history.size(-1))
+            target = latents.clone().reshape(-1, self.patch_size, latents.size(-1))
 
-        # Flow matching loss
-        flow_loss = self.flowloss(
-            cond=condition,
-            target=target,
-            latent_history=latent_history,
-            mask=condition_mask,
-            patch_size=self.patch_size
-        )
+            # Flow matching loss
+            flow_loss = self.flowloss(
+                cond=condition,
+                target=target,
+                latent_history=latent_history,
+                mask=condition_mask,
+                patch_size=self.patch_size
+            )
 
-        # Stop head loss
-        pred_stop_probs = self.stop_head(llm_last_outputs).transpose(1,2)
-        stop_loss = self.stop_loss_func(pred_stop_probs, stop_label)
-
+            # Stop head loss
+            pred_stop_probs = self.stop_head(llm_last_outputs).transpose(1,2)
+            stop_loss = self.stop_loss_func(pred_stop_probs, stop_label)
+            asr_loss = torch.zeros_like(flow_loss)
+        else:
+            logits = outputs.logits[:, :-1, :]
+            labels = labels[:, 1:]
+            asr_loss = torch.nn.CrossEntropyLoss(reduction="none")(logits.reshape(-1, logits.size(-1)), labels.reshape(-1))
+            loss_mask = labels != -100
+            asr_loss = torch.sum(asr_loss * loss_mask.reshape(-1))
+            if asr_loss.sum().item() > 0:
+                asr_loss = asr_loss / loss_mask.sum()
+            flow_loss = torch.zeros_like(asr_loss)
+            stop_loss = [torch.zeros_like(asr_loss), {'likely_pos': 0, 'likely_neg': 0}]
+            
         return BailingMMCausalLMOutputWithPast(
             flow_loss=flow_loss,
             stop_loss=stop_loss[0],
-            stop_loss_likely=stop_loss[1]
+            stop_loss_likely=stop_loss[1],
+            asr_loss=asr_loss
         )
 
     def prepare_inputs_for_generation(self):
