@@ -4,7 +4,7 @@
     <img src="./figures/ant-bailing.png" width="100"/>
 <p>
 
-<p align="center">📝<a href="https://mdn.alipayobjects.com/cto_asrtts/uri/file/as/TR-Ming-UniAudio.pdf">Technical Report</a> ｜🌐<a href="https://xqacmer.github.io/Ming-Unitok-Audio.github.io/">Project Page</a> ｜🤗 <a href="https://huggingface.co/inclusionAI/Ming-UniAudio-16B-A3B">Hugging Face</a>｜ 🤖 <a href="https://modelscope.cn/models/inclusionAI/Ming-UniAudio-16B-A3B">ModelScope</a>
+<p align="center">📝<a href="https://arxiv.org/abs/2511.05516">Technical Report</a> ｜🌐<a href="https://xqacmer.github.io/Ming-Unitok-Audio.github.io/">Project Page</a> ｜🤗 <a href="https://huggingface.co/inclusionAI/Ming-UniAudio-16B-A3B">Hugging Face</a>｜ 🤖 <a href="https://modelscope.cn/models/inclusionAI/Ming-UniAudio-16B-A3B">ModelScope</a>
 
 
 
@@ -22,8 +22,8 @@ Ming-UniAudio is a novel framework that unifies speech understanding, generation
 <p>
 
 ## 📌 Updates
-* [2025.10.28] 🔥 We release [Technical Report](https://mdn.alipayobjects.com/cto_asrtts/uri/file/as/TR-Ming-UniAudio.pdf).
-* [2025.10.27] 🔥 We release [SFT recipes](sft/README.md) of Speech Generation.
+* [2025.10.28] 🔥 We release [Technical Report](https://arxiv.org/abs/2511.05516).
+* [2025.10.27] 🔥 We release [SFT recipes](sft/README.md).
 * [2025.09.30] 🔥 We release [Ming-UniAudio](https://xqacmer.github.io/Ming-Unitok-Audio.github.io/) with significant improvements across speech understanding, generation, and free-form editing tasks.
 
 

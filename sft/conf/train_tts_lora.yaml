@@ -28,6 +28,7 @@ train:
   loss_weight:
     flow_loss: 1
     stop_loss: 0.01
+    asr_loss: 0
 
 dataset:
   data_jsonl_file: sft/data/tts.jsonl

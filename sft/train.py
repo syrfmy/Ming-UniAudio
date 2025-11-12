@@ -102,17 +102,25 @@ class Trainer:
 
         flow_loss_w = self.config['train']['loss_weight']['flow_loss']
         stop_loss_w = self.config['train']['loss_weight']['stop_loss']
+        asr_loss_w = self.config['train']['loss_weight']['asr_loss']
+
+        # training task type
+        if asr_loss_w == 0:
+            task_type = 'tts'
+        else:
+            task_type = 'asr'
 
         for batch in self.dataloader:
             batch = send_to_device(batch, 'cuda')
             with torch.amp.autocast(device_type='cuda', dtype=torch.bfloat16, enabled=True):
-                outputs = self.model(**batch)
+                outputs = self.model(**batch, task_type=task_type)
 
             flow_loss = outputs.flow_loss
             stop_loss = outputs.stop_loss
             stop_loss_likely = outputs.stop_loss_likely
+            asr_loss = outputs.asr_loss
 
-            loss = flow_loss*flow_loss_w + stop_loss*stop_loss_w
+            loss = flow_loss*flow_loss_w + stop_loss*stop_loss_w + asr_loss*asr_loss_w
             self.accelerator.backward(loss)
             if self.accelerator.sync_gradients:
                 self.accelerator.clip_grad_norm_(self.model.parameters(), 1.0)
@@ -124,6 +132,7 @@ class Trainer:
 
             flow_loss_mean = self.accelerator.reduce(flow_loss, reduction='mean')
             stop_loss_mean = self.accelerator.reduce(stop_loss, reduction='mean')
+            asr_loss_mean = self.accelerator.reduce(asr_loss, reduction='mean')
             
             stats_duration += self.accelerator.reduce(batch['stats_duration'].sum(), reduction='sum').item()
 
@@ -135,12 +144,14 @@ class Trainer:
                         'flow_loss': flow_loss_mean.item(),
                         'stop_loss': stop_loss_mean.item(),
                         'stop_loss_likely': stop_loss_likely,
+                        'asr_loss': asr_loss_mean.item(),
                         'duration_sum': stats_duration
                     }
                 )
 
-                self.summary_writer.add_scalar('loss/flow_loss', flow_loss.item(), steps)
-                self.summary_writer.add_scalar('loss/stop_loss', stop_loss.item(), steps)
+                self.summary_writer.add_scalar('loss/flow_loss', flow_loss_mean.item(), steps)
+                self.summary_writer.add_scalar('loss/stop_loss', stop_loss_mean.item(), steps)
+                self.summary_writer.add_scalar('loss/asr_loss', asr_loss_mean.item(), steps)
                 self.summary_writer.add_scalar('lr', self.lr_scheduler.get_lr()[0], steps)
                 self.summary_writer.add_scalar('stats/duration', stats_duration, steps)
 
