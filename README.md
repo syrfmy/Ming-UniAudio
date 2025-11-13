@@ -36,6 +36,7 @@ Ming-UniAudio is a novel framework that unifies speech understanding, generation
 
 ## Updates
 
+- [ ] Support VLLM Inference
 - [x] [Technical Report](https://arxiv.org/abs/2511.05516)
 - [x] [ASR & TTS SFT recipes](sft/README.md)
 - [x] Streaming TTS
