@@ -20,6 +20,7 @@
 - [Example Usage](#example-usage)
 - [SFT](#sft)
 - [Citation](#citation)
+- [Join Us](#join-us)
 
 ## Introduction
 
@@ -750,3 +751,5 @@ If you find our work helpful, feel free to give us a cite.
 }
 ```
 
+## Join Us
+The Ant Group's Bailing (百灵) large language model team is seeking talented speech algorithm engineers for R&D in areas including **Speech Understanding, Generation, Dialogue, and Tokenizers**. If you're passionate about building state-of-the-art speech technology, send your resume to [lyuyongjie.lyj@antgroup.com](mailto:lyuyongjie.lyj@antgroup.com).
