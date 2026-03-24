@@ -1,0 +1,44 @@
+train:
+  model:
+    pretrained_model_path: inclusionAI/Ming-UniAudio-16B-A3B
+    freeze_semantic_module: True
+    use_grouped_gemm: False
+    sft_type: qlora # qlora for Kaggle 4-bit finetuning
+    lora_config:
+      r: 8
+      lora_alpha: 32
+      lora_dropout: 0.1
+      target_modules:
+        ["query_key_value", "gate_proj", "up_proj", "down_proj", "to_q", "to_v"]
+      # Feel free to add more target modules for better performance
+  # Gradient accumulation helps simulate larger batches
+  gradient_accumulation_steps: 8
+  dataloader:
+    num_workers: 2 # Reduced for Kaggle
+    prefetch_factor: 2
+    pin_memory: True
+  optimizer:
+    lr: 0.0002 # Slightly higher LR is typical for QLoRA
+    betas: [0.9, 0.95]
+    eps: 0.00001
+    weight_decay: 0.02
+  lr_scheduler:
+    name: constant_with_warmup # cosine or constant_with_warmup
+    num_warmup_steps: 100
+    num_training_steps: 400000
+  save_config:
+    save_model_steps: 2000
+    save_dir: exp/sft/tts_qlora
+  loss_weight:
+    flow_loss: 1
+    stop_loss: 0.01
+    asr_loss: 0
+
+dataset:
+  data_jsonl_file: sft/data/my_custom_data.jsonl # IMPORTANT: Change this to your Kaggle JSONL data!
+  tokenizer: "."
+  sr: 16000
+  patch_size: 5
+  hop_size: 320
+  max_frames_in_batch: 800 # Extremely low threshold for 15GB T4 GPUs
+  buffer_size: 200 # Smaller buffer to reduce CPU RAM overhead
