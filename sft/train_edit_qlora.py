@@ -322,14 +322,16 @@ class Trainer:
             logger.add(sink=f'{self.output_dir}/train.log')
             self.summary_writer = SummaryWriter(log_dir=f'{self.output_dir}/tfevent')
             
-            import wandb
-            wandb.init(
-                project=self.config.get('wandb_project', 'ming-audio-edit'),
-                name='qlora-edit-finetune',
-                config=self.config,
-                dir=self.output_dir,
-                resume="allow"
-            )
+            self.use_wandb = self.config.get('use_wandb', True)
+            if self.use_wandb:
+                import wandb
+                wandb.init(
+                    project=self.config.get('wandb_project', 'ming-audio-edit'),
+                    name='qlora-edit-finetune',
+                    config=self.config,
+                    dir=self.output_dir,
+                    resume="allow"
+                )
 
         logger.info(f"{os.environ.get('RANK', 0)}-{os.environ.get('LOCAL_RANK', 0)}/{os.environ.get('WORLD_SIZE', 1)}")
 
@@ -389,15 +391,16 @@ class Trainer:
                 self.summary_writer.add_scalar('lr', self.lr_scheduler.get_lr()[0], steps)
                 self.summary_writer.add_scalar('stats/duration', stats_duration, steps)
                 
-                import wandb
-                wandb.log({
-                    'step': steps,
-                    'loss/flow_loss': flow_loss_mean.item(),
-                    'loss/stop_loss': stop_loss_mean.item(),
-                    'loss/asr_loss': asr_loss_mean.item(),
-                    'lr': self.lr_scheduler.get_lr()[0],
-                    'stats/duration': stats_duration
-                }, step=steps)
+                if getattr(self, 'use_wandb', True):
+                    import wandb
+                    wandb.log({
+                        'step': steps,
+                        'loss/flow_loss': flow_loss_mean.item(),
+                        'loss/stop_loss': stop_loss_mean.item(),
+                        'loss/asr_loss': asr_loss_mean.item(),
+                        'lr': self.lr_scheduler.get_lr()[0],
+                        'stats/duration': stats_duration
+                    }, step=steps)
 
             if steps % self.config['train']['save_config']['save_model_steps'] == 0:
                 self.accelerator.wait_for_everyone()
